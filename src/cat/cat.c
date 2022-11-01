@@ -53,22 +53,22 @@ Non- ASCII characters (with the high bit set) are printed as `M-'
 #define OPTION_ERROR_MESSAGE "s21_cat: invalid option -- "
 #define LONG_OPTION_ERROR_MESSAGE "s21_cat: unrecognized option '"
 #define HELP_MESSAGE "Try 's21_cat --help' for more inforation.\n"
-#define USAGE_MESSAGE                                                          \
-                                                                               \
-  "Usage: cat [OPTION]... [FILE]...\n"                                         \
-  "Concatenate FILE(s) to standard output.\n"                                  \
-  "\nWith no FILE, or when FILE is -, read standard input.\n"                  \
-  "\n  -A, --show-all           equivalent to -vET\n"                          \
-  "  -b, --number-nonblank    number nonempty output lines, overrides -n\n"    \
-  "  -e                       equivalent to -vE\n"                             \
-  "  -E, --show-ends          display $ at end of each line\n"                 \
-  "  -n, --number             number all output lines\n"                       \
-  "  -s, --squeeze-blank      suppress repeated empty output lines\n"          \
-  "  -t                       equivalent to -vT\n"                             \
-  "  -T, --show-tabs          display TAB characters as ^I\n"                  \
-  "  -u                       (ignored)\n"                                     \
-  "  -v, --show-nonprinting   "                                                \
-  "use ^ and M- notation, except for LFD and TAB\n"                            \
+#define USAGE_MESSAGE                                                       \
+                                                                            \
+  "Usage: cat [OPTION]... [FILE]...\n"                                      \
+  "Concatenate FILE(s) to standard output.\n"                               \
+  "\nWith no FILE, or when FILE is -, read standard input.\n"               \
+  "\n  -A, --show-all           equivalent to -vET\n"                       \
+  "  -b, --number-nonblank    number nonempty output lines, overrides -n\n" \
+  "  -e                       equivalent to -vE\n"                          \
+  "  -E, --show-ends          display $ at end of each line\n"              \
+  "  -n, --number             number all output lines\n"                    \
+  "  -s, --squeeze-blank      suppress repeated empty output lines\n"       \
+  "  -t                       equivalent to -vT\n"                          \
+  "  -T, --show-tabs          display TAB characters as ^I\n"               \
+  "  -u                       (ignored)\n"                                  \
+  "  -v, --show-nonprinting   "                                             \
+  "use ^ and M- notation, except for LFD and TAB\n"                         \
   "      --help        display this help and exit\n"
 
 int get_options(char **argv);
@@ -94,24 +94,30 @@ int main(int argc, char **argv) {
       f = stdin;
     else if (argv[i][0] != '-') {
       if ((f = fopen(argv[i], "r")) == NULL) {
+        write(STDERR_FILENO, "s21_cat: ", sizeof("s21_cat: ") - 1);
         perror(argv[i]);
         retval = EXIT_FAILURE;
         continue;
       }
     } else
       continue;
-    // check_redirection
+    // (void) fileno(f) ;
+    // check_redirection(f);
     if (!flags)
-      fastcat(f); // fileno(f));
+      fastcat(f);  // fileno(f));
     else
       cat(f, flags);
-    if (f != stdin)
-      fclose(f);
+    if (f != stdin) fclose(f);
   }
 
   return retval;
 }
+/*
+void check_redirection(FILE *stream)
+{
 
+}
+*/
 int get_options(char **argv) {
   char *arg = NULL;
   char c = '\0';
@@ -121,36 +127,36 @@ int get_options(char **argv) {
     if (arg[0] == '-' && arg[1] != '-') {
       while ((c = *++arg)) {
         switch (c) {
-        case 'A':
-          flags |= VFLAG | EFLAG | TFLAG;
-          break;
-        case 'b':
-          flags |= BFLAG | NFLAG;
-          break;
-        case 'e':
-          flags |= EFLAG | VFLAG;
-          break;
-        case 'E':
-          flags |= EFLAG;
-          break;
-        case 'n':
-          flags |= NFLAG;
-          break;
-        case 's':
-          flags |= SFLAG;
-          break;
-        case 't':
-          flags |= TFLAG | VFLAG;
-          break;
-        case 'T':
-          flags |= TFLAG;
-          break;
-        case 'v':
-          flags |= VFLAG;
-          break;
-        default:
-          print_option_error(c);
-          exit(EXIT_FAILURE);
+          case 'A':
+            flags |= VFLAG | EFLAG | TFLAG;
+            break;
+          case 'b':
+            flags |= BFLAG | NFLAG;
+            break;
+          case 'e':
+            flags |= EFLAG | VFLAG;
+            break;
+          case 'E':
+            flags |= EFLAG;
+            break;
+          case 'n':
+            flags |= NFLAG;
+            break;
+          case 's':
+            flags |= SFLAG;
+            break;
+          case 't':
+            flags |= TFLAG | VFLAG;
+            break;
+          case 'T':
+            flags |= TFLAG;
+            break;
+          case 'v':
+            flags |= VFLAG;
+            break;
+          default:
+            print_option_error(c);
+            exit(EXIT_FAILURE);
         }
       }
     } else if (arg[0] == '-' && arg[1] == '-') {
@@ -190,21 +196,18 @@ int cat(FILE *f, int flags) {
   while ((c = getc(f)) != EOF) {
     if (c == '\n') {
       if (itline == 0) {
-        if ((flags & SFLAG) && spaced)
-          continue;
+        if ((flags & SFLAG) && spaced) continue;
         spaced = 1;
       }
       if ((flags & NFLAG) && !(flags & BFLAG) && itline == 0) {
         printf("%6d\t", ++num);
       }
-      if (flags & EFLAG)
-        putchar('$');
+      if (flags & EFLAG) putchar('$');
       putchar('\n');
       itline = 0;
       continue;
     }
-    if (flags & NFLAG && itline == 0)
-      printf("%6d\t", ++num);
+    if (flags & NFLAG && itline == 0) printf("%6d\t", ++num);
     itline = 1;
     if (flags & VFLAG) {
       if (!(flags & TFLAG) && c == '\t')
@@ -299,5 +302,21 @@ void print_long_option_error(const char *option) {
 }
 
 void print_usage(void) {
-  write(STDOUT_FILENO, USAGE_MESSAGE, sizeof(USAGE_MESSAGE) - 1);
+  char usage[] =
+      "Usage: cat [OPTION]... [FILE]...\n"
+      "Concatenate FILE(s) to standard output.\n\n"
+      "With no FILE, or when FILE is -, read standard input.\n\n"
+      "  -A, --show-all           equivalent to -vET\n"
+      "  -b, --number-nonblank    number nonempty output lines, overrides -n\n"
+      "  -e                       equivalent to -vE\n"
+      "  -E, --show-ends          display $ at end of each line\n"
+      "  -n, --number             number all output lines\n"
+      "  -s, --squeeze-blank      suppress repeated empty output lines\n"
+      "  -t                       equivalent to -vT\n"
+      "  -T, --show-tabs          display TAB characters as ^I\n"
+      "  -u                       (ignored)\n"
+      "  -v, --show-nonprinting   use ^ and M- notation, except for LFD and TAB\n"
+      "      --help               display this help and exit\n";
+
+  write(STDOUT_FILENO, usage, sizeof(usage) - 1);
 }

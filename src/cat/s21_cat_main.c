@@ -1,5 +1,7 @@
 #include "s21_cat.h"
 
+static int not_files_in_argv(char **argv);
+
 int main(int argc, char **argv)
 {
 	int flags = 0;
@@ -9,7 +11,7 @@ int main(int argc, char **argv)
 
 	flags = get_options(argv);
 
-	if (argc == 1)
+	if ((argc == 1) || not_files_in_argv(argv))
 	{
 		argc = 2;
 		fstdin = 1;
@@ -56,4 +58,15 @@ int main(int argc, char **argv)
 	}
 
 	return ret_value ? 1 : 0;
+}
+
+static int not_files_in_argv(char **argv)
+{
+	while (*++argv)
+	{
+		if (**argv != '-')
+			return 0;
+	}
+
+	return 1;
 }

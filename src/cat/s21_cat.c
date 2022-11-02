@@ -7,7 +7,7 @@ int cat(FILE *stream, int flags)
 	static int num = 0;
 	int c = EOF;
 
-	while ((c = getc(stream) != EOF))
+	while ((c = getc(stream)) != EOF)
 	{
 		if (c == '\n')
 		{

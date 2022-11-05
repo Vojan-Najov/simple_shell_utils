@@ -13,18 +13,20 @@
 #define OFLAG 0x200
 #define ERROR 0xffff
 
-typedef struct string_list {
+typedef struct strlist {
 	char *content;
-	struct string_list *next;
-} t_string_list;
+	int need_free;
+	struct strlist *next;
+} t_strlist;
 
-int string_list_push_back(t_string_list **head, char *content, int make_copy);
-
-void string_list_clear(t_string_list *head);
-
-int print_error(const char *tag);
-
-int get_options(int argc, char *argv[]);
+int
+strlist_push_back(t_strlist **head, char *content, int make_copy);
+void
+strlist_clear(t_strlist *head);
+int
+print_error(const char *tag);
+int
+get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename);
 
 
 

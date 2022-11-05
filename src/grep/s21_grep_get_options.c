@@ -4,26 +4,29 @@
 #include "s21_grep.h"
 #include "get_next_line.h"
 
+//static int
+//get_options_error(t_strlist *template, t_strlist *filename);
 static int
-get_options_error(t_string_list *template, t_string_list *filename);
+get_template_from_file(t_strlist **template, const char *filename);
 static int
-get_template_from_file(t_string_list **template, const char *filename);
+get_template_from_args(t_strlist **template, char *arg);
+static int
+get_filename_from_args(t_strlist **filename, char **arg_ptr);
 
-int get_options(int argc, char *argv[])
+int
+get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename)
 {
-	const char *opt_string = "e:ivclnhsf:o";
+	const char *optstring = "e:ivclnhsf:o";
 	int flags = 0;
 	int c = -1;
-	t_string_list *template = NULL;
-	t_string_list *filename = NULL;
+	int status = 0;
+	char **arg_ptr = NULL;
 
-	while ((c = getopt(argc, argv, opt_string)) != -1) {
+	while ((status == 0) && (c = getopt(argc, argv, optstring)) != -1) {
 		switch (c) {
 			case 'e':
 				flags |= EFLAG;
-				if (string_list_push_back(&template, optarg, 1) != 0) {
-					return (get_options_error(template, filename));
-				}
+				status = strlist_push_back(template, optarg, 0);
 				break;
 			case 'i':
 				flags |= IFLAG;
@@ -48,52 +51,142 @@ int get_options(int argc, char *argv[])
 				break;
 			case 'f':
 				flags |= FFLAG;
-				get_template_from_file(&template, optarg);
+				status = get_template_from_file(template, optarg);
 				break;
 			case 'o':
 				flags |= OFLAG;
 				break;
 			case '?':
 				fprintf(stderr, "Usage: s21_grep [OPTION]... PATTERNS [FILE]...\n");
-				return (get_options_error(template, filename));
+				status = ERROR;
+				break;
 		}
 	}
 
-	while (template) {
-		printf("%s\n", template->content);
-		template = template->next;
+	if ((flags & FFLAG) && *template == NULL) {
+		status = ERROR;
 	}
+
+	if (status == 0) {
+		arg_ptr = argv + optind;
+		if (*template == NULL) {
+			status = get_template_from_args(template, *arg_ptr);
+			++arg_ptr;
+		}
+		if (status == 0) {
+			status = get_filename_from_args(filename, arg_ptr);
+		}
+	}
+	
+	return (status == 0 ? flags : ERROR);
+}
+
+static int get_template_from_args(t_strlist **template, char *arg)
+{
+	int status = 0;
+
+	if (arg != NULL) {
+		status = strlist_push_back(template, arg, 0);
+	}
+	else {
+		status = ERROR;
+	}
+
+	return (status);
+}
+
+static int get_filename_from_args(t_strlist **filename, char **arg_ptr)
+{
+	int status = 0;
+
+	if (*arg_ptr == NULL) {
+		status = strlist_push_back(filename, "-", 0);
+	}
+	while ((status == 0) && (*arg_ptr != NULL)) {
+		status = strlist_push_back(filename, *arg_ptr, 0);
+		++arg_ptr;
+	}
+
+	return status;
+}
+
+	/*
+	if (arg != NULL) {
+		if ((*template == NULL) && !(flags & FFLAG)) {
+			if (strlist_push_back(template, arg, 0) != 0 ) {
+				return (get_options_error(*template, *filename));
+			}
+			++arg;
+		}
+		if (arg !=
+	}
+	if ((*template == NULL) && !(flags & FFLAG)) {
+			if (argv[optind] != NULL) {
+				if (strlist_push_back(template, argv[optind]);
+			}
+		}
+	}
+	if (!argv[optind]) {
+		if (strlist_push_back(filename, NULL, 0) != 0) {
+			return (get_options_error(*template, *filename));
+		}
+	}
+	for (int i = optind; argv[i]; ++i) {
+		if (strlist_push_back(filename, argv[i], 0) != 0) {
+			return (get_options_error(*template, *filename));
+		}
+	}
+
+	t_strlist *temp = *template;
+	while (temp) {
+		printf("%s\n", temp->content);
+		temp = temp->next;
+	}
+	temp = *filename;
+	printf("files: \n");
+	while (temp) {
+		printf("%s\n", temp->content);
+		temp = temp->next;
+	}
+	get_options_error(*template, *filename);
 
 	return flags;
 }
 
 static int
-get_options_error(t_string_list *template, t_string_list *filename) {
-	string_list_clear(template);
-	string_list_clear(filename);
+get_options_error(t_strlist *template, t_strlist *filename) {
+	strlist_clear(template);
+	strlist_clear(filename);
 
 	return ERROR;
 }
+	*/
 
 static int
-get_template_from_file(t_string_list **template, const char *filename) {
+get_template_from_file(t_strlist **template, const char *filename) {
 	int fd = -1;
 	int ret = -1;
+	int status = 0;
 	char *line = NULL;
 
-	if ((fd = open(filename, O_RDONLY)) == -1) {
-		return (print_error(filename));
+	fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		print_error(filename);
+		status = ERROR;
 	}
-	while ((ret = get_next_line(fd, &line)) > 0) {
-		if (string_list_push_back(template, line, 0) != 0) {
-			close(fd);
-			//get_next_line_free_buffer;
-			return (ERROR);
+	else {
+		while ((ret = get_next_line(fd, &line)) > 0) {
+			ret = strlist_push_back(template, line, 1);
+			if (ret != 0) {
+				status = ERROR;
+				break;
+			}
+		}
+		close(fd);
+		if (ret == -1) {
+			status = ERROR;
 		}
 	}
-	if (ret == -1) {
-		return (ERROR);
-	}
 
-	return (0);
+	return (status);
 }

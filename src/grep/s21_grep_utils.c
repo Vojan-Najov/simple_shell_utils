@@ -4,37 +4,32 @@
 #include <errno.h>
 #include "s21_grep.h"
 
-int string_list_push_back(t_string_list **head, char *content, int make_copy)
+int strlist_push_back(t_strlist **head, char *content, int need_free)
 {
-	char *copy = content;
-
-	if (make_copy) {
-		copy = strdup(content);
-		if (copy == NULL) {
-			return (print_error("memory error"));
-		}
-	}
-
 	while (*head != NULL) {
 		head = &(*head)->next;
 	}
-	*head = (t_string_list *) malloc(sizeof(t_string_list));
+	*head = (t_strlist *) malloc(sizeof(t_strlist));
 	if (*head == NULL) {
 		return (print_error("memory error"));
 	}
 	(*head)->content = content;
+	(*head)->need_free = need_free;
+	(*head)->next = NULL;
 
 	return (0);
 }
 
-void string_list_clear(t_string_list *head)
+void strlist_clear(t_strlist *head)
 {
-	t_string_list *tmp;
+	t_strlist *tmp;
 
 	while (head != NULL) {
 		tmp = head;
 		head = head->next;
-		free(tmp->content);
+		if (tmp->need_free) {
+			free(tmp->content);
+		}
 		free(tmp);
 	}
 }

@@ -1,7 +1,6 @@
 #ifndef S21_GREP_H
 #define S21_GREP_H
 
-#include <stddef.h>
 #include <regex.h>
 #include <stdio.h>
 
@@ -17,6 +16,7 @@
 #define OFLAG 0x200
 #define PRINT_FILENAME 0x400
 #define ERROR 0xffff
+#define NEED_FREE 1
 #define MAX_ERR_LENGTH 1024
 
 typedef struct strlist {
@@ -35,6 +35,8 @@ size_t
 strlist_size(t_strlist *head);
 int
 print_error(const char *tag);
+void
+print_usage(void);
 FILE *
 open_file(const char *filename, int no_message);
 int

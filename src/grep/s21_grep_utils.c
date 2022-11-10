@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include "s21_grep.h"
 
@@ -37,6 +36,7 @@ int strlist_insert_sort(t_strlist **head, char *content, int need_free)
 	if (*head != NULL) {
 		tmp = *head;
 	}
+
 	*head = (t_strlist *) malloc(sizeof(t_strlist));
 	if (*head != NULL) {
 		(*head)->content = content;
@@ -83,7 +83,7 @@ int print_error(const char *tag)
 	char *str_error;
 
 	if (tag[0] == '-' && tag[1] == '\0') {
-		tag = "standart input";
+		tag = "(standart input)";
 	}
 
 	str_error = strerror(errnum);
@@ -91,6 +91,25 @@ int print_error(const char *tag)
 	fprintf(stderr, "s21_grep: %s: %s\n", tag, str_error);
 	
 	return errnum;
+}
+
+void print_usage(void) {
+  size_t size = sizeof(char);
+  const char usage[] =
+  "Usage: s21_grep [-chnlovsi] { PATTERN | -e PATTERN... | -f file... }  [FILE]...\n"
+  "\n Search for PATTERN in FILEs (or stdin)\n\n"
+  "    -h      Do not add 'filename:' prefix\n"
+  "    -n      Add 'line_no:' prefix\n"
+  "    -l      Show only names of files that match\n"
+  "    -c      Show only count of matching lines\n"
+  "    -o      Show only the matching part of line\n"
+  "    -v      Select non-matching lines\n"
+  "    -s      Supress open and read errors\n"
+  "    -i      Ignore case\n"
+  "    -e PTRN Pattern to match\n"
+  "    -f FILE Read pattern from file\n";
+
+  fwrite(usage, size, sizeof(usage), stderr);
 }
 
 FILE *open_file(const char *filename, int no_message) {

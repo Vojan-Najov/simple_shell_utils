@@ -1,9 +1,6 @@
-#include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
-
-#include <unistd.h>
-#include <fcntl.h>
 #include "s21_grep.h"
 
 static int
@@ -14,7 +11,7 @@ static int
 get_filename_from_args(t_strlist **filename, char **arg_ptr);
 
 int
-get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename)
+get_options(int argc, char **argv, t_strlist **template, t_strlist **filename)
 {
 	const char *optstring = "e:ivclnhsf:o";
 	int flags = 0;
@@ -22,11 +19,11 @@ get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename)
 	int status = 0;
 	char **arg_ptr = NULL;
 
-	while ((status == 0) && (c = getopt(argc, argv, optstring)) != -1) {
+	opterr = 0;
+	while ((status == 0) && ((c = getopt(argc, argv, optstring)) != -1)) {
 		switch (c) {
 			case 'e':
 				flags |= EFLAG;
-				//status = strlist_push_back(template, optarg, 0);
 				status = strlist_insert_sort(template, optarg, 0);
 				break;
 			case 'i':
@@ -58,7 +55,8 @@ get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename)
 				flags |= OFLAG;
 				break;
 			case '?':
-				fprintf(stderr, "Usage: s21_grep [OPTION]... PATTERNS [FILE]...\n");
+				fprintf(stderr, "s21_grep: invalid option -- '%c'\n", optopt);
+				print_usage();
 				status = ERROR;
 				break;
 		}
@@ -90,6 +88,7 @@ static int get_template_from_args(t_strlist **template, char *arg)
 		status = strlist_push_back(template, arg, 0);
 	}
 	else {
+		print_usage();
 		status = ERROR;
 	}
 
@@ -132,7 +131,6 @@ get_template_from_file(t_strlist **template, const char *filename)
 			if (nlptr) {
 				*nlptr = '\0';
 			}
-			//status = strlist_push_back(template, line, 1);
 			status = strlist_insert_sort(template, line, 1);
 			if (status) {
 				print_error("memory error");
@@ -146,8 +144,8 @@ get_template_from_file(t_strlist **template, const char *filename)
 			print_error(filename);
 			status = ERROR;
 		}
-		else if (nread == -1 && errno) {
-			print_error(filename);
+		else if (nread == -1 && errno == ENOMEM) {
+			print_error("memory error");
 			status = ERROR;
 		}
 
@@ -161,34 +159,3 @@ get_template_from_file(t_strlist **template, const char *filename)
 
 	return (status);
 }
-
-/*
-static int
-get_template_from_file(t_strlist **template, const char *filename) {
-	int fd = -1;
-	int ret = -1;
-	int status = 0;
-	char *line = NULL;
-
-	fd = open(filename, O_RDONLY);
-	if (fd == -1) {
-		print_error(filename);
-		status = ERROR;
-	}
-	else {
-		while ((ret = get_next_line(fd, &line)) > 0) {
-			ret = strlist_push_back(template, line, 1);
-			if (ret != 0) {
-				status = ERROR;
-				break;
-			}
-		}
-		close(fd);
-		if (ret == -1) {
-			status = ERROR;
-		}
-	}
-
-	return (status);
-}
-*/

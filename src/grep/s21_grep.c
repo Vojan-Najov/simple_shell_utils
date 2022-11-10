@@ -19,10 +19,8 @@ int main(int argc, char *argv[])
 	t_strlist *filename = NULL;
 
 	flags = get_options(argc, argv, &template, &filename);
-
 	if (flags != ERROR) {
 		n_template = regex_compile(template, &re_array, flags);
-		strlist_clear(template);
 		if (n_template > 0) {
 			status = grep(filename, re_array, n_template, flags);
 			for (int i = 0; i < n_template; ++i) {
@@ -30,11 +28,15 @@ int main(int argc, char *argv[])
 			}
 			free(re_array);
 		}
+		else {
+			status = 1;
+		}
 	}
 	else {
 		status = 1;
 	}
 
+	strlist_clear(template);
 	strlist_clear(filename);
 
 	return (status);

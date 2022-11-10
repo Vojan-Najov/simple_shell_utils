@@ -1,11 +1,11 @@
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include "s21_grep.h"
-#include "get_next_line.h"
 
-//static int
-//get_options_error(t_strlist *template, t_strlist *filename);
 static int
 get_template_from_file(t_strlist **template, const char *filename);
 static int
@@ -26,7 +26,8 @@ get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename)
 		switch (c) {
 			case 'e':
 				flags |= EFLAG;
-				status = strlist_push_back(template, optarg, 0);
+				//status = strlist_push_back(template, optarg, 0);
+				status = strlist_insert_sort(template, optarg, 0);
 				break;
 			case 'i':
 				flags |= IFLAG;
@@ -110,58 +111,58 @@ static int get_filename_from_args(t_strlist **filename, char **arg_ptr)
 	return status;
 }
 
-	/*
-	if (arg != NULL) {
-		if ((*template == NULL) && !(flags & FFLAG)) {
-			if (strlist_push_back(template, arg, 0) != 0 ) {
-				return (get_options_error(*template, *filename));
-			}
-			++arg;
-		}
-		if (arg !=
-	}
-	if ((*template == NULL) && !(flags & FFLAG)) {
-			if (argv[optind] != NULL) {
-				if (strlist_push_back(template, argv[optind]);
-			}
-		}
-	}
-	if (!argv[optind]) {
-		if (strlist_push_back(filename, NULL, 0) != 0) {
-			return (get_options_error(*template, *filename));
-		}
-	}
-	for (int i = optind; argv[i]; ++i) {
-		if (strlist_push_back(filename, argv[i], 0) != 0) {
-			return (get_options_error(*template, *filename));
-		}
-	}
-
-	t_strlist *temp = *template;
-	while (temp) {
-		printf("%s\n", temp->content);
-		temp = temp->next;
-	}
-	temp = *filename;
-	printf("files: \n");
-	while (temp) {
-		printf("%s\n", temp->content);
-		temp = temp->next;
-	}
-	get_options_error(*template, *filename);
-
-	return flags;
-}
-
 static int
-get_options_error(t_strlist *template, t_strlist *filename) {
-	strlist_clear(template);
-	strlist_clear(filename);
+get_template_from_file(t_strlist **template, const char *filename)
+{
+	FILE *stream;
+	ssize_t nread;
+	int status = 0;
+	char *line = NULL;
+	char *nlptr;
+	size_t len = 0;
 
-	return ERROR;
+	stream = open_file(filename, 0);
+	if (stream == NULL) {
+		status = ERROR;
+	}
+	else {
+		errno = 0;
+		while ((status == 0) && ((nread = getline(&line, &len, stream)) != -1)) {
+			nlptr = index(line, '\n');
+			if (nlptr) {
+				*nlptr = '\0';
+			}
+			//status = strlist_push_back(template, line, 1);
+			status = strlist_insert_sort(template, line, 1);
+			if (status) {
+				print_error("memory error");
+			}
+			line = NULL;
+			len = 0;
+			errno = 0;
+		}
+
+		if (ferror(stream)) {
+			print_error(filename);
+			status = ERROR;
+		}
+		else if (nread == -1 && errno) {
+			print_error(filename);
+			status = ERROR;
+		}
+
+		if (stream == stdin) {
+			clearerr(stdin);
+		}
+		else {
+			fclose(stream);
+		}
+	}
+
+	return (status);
 }
-	*/
 
+/*
 static int
 get_template_from_file(t_strlist **template, const char *filename) {
 	int fd = -1;
@@ -190,3 +191,4 @@ get_template_from_file(t_strlist **template, const char *filename) {
 
 	return (status);
 }
+*/

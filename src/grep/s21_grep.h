@@ -1,8 +1,17 @@
 #ifndef S21_GREP_H
 #define S21_GREP_H
 
-#include <regex.h>
+//#define _GNU_SOURCE 1
+//#ifdef __linux__
+//	#define _GNU_SOURCE 1
+//#endif
+//#ifndef __STDC_ALLOC_LIB__
+//#define __STDC_WANT_LIB_EXT2__ 1
+//#else
+//#define _POSIX_C_SOURCE 201710L
+//#endif
 #include <stdio.h>
+#include <regex.h>
 
 #define EFLAG 0x01
 #define IFLAG 0x02
@@ -41,8 +50,5 @@ FILE *
 open_file(const char *filename, int no_message);
 int
 get_options(int argc, char *argv[], t_strlist **template, t_strlist **filename);
-int
-regex_compile(t_strlist *template, regex_t **regex_array, int flags);
-
 
 #endif

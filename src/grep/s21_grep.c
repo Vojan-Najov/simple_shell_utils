@@ -1,13 +1,18 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include "s21_grep.h"
 
 
-int grep(t_strlist *filename, regex_t *re, int nre, int flags);
-void print_line(const char *line, size_t n, regex_t *re, int nre, const char *filename, int flags);
-void grep_from_file(FILE *stream, char *filename, regex_t *re, int nre, int flags);
+static int
+regex_compile(t_strlist *template, regex_t **regex_array, int flags);
+static int
+grep(t_strlist *filename, regex_t *re, int nre, int flags);
+static int
+grep_from_file(FILE *stream, char *filename, regex_t *re, int nre, int flags);
+static void
+print_line(const char *line, size_t n, regex_t *re,
+           int nre, const char *filename, int flags);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +47,51 @@ int main(int argc, char *argv[])
 	return (status);
 }
 
-int grep(t_strlist *filename, regex_t *re_array, int nre, int flags)
+static int
+regex_compile(t_strlist *template, regex_t **regex_array, int flags)
+{
+	int n_template = 0;
+	int i = 0;
+	regex_t *re_array = NULL;
+	int errcode = 0;
+	char errbuf[MAX_ERR_LENGTH];
+	int cflags = 0;
+	
+
+	if (flags & IFLAG)
+		cflags |= REG_ICASE;
+	if ((flags & OFLAG) == 0)
+		cflags |= REG_NOSUB;
+	// возможно добавить REG_NEWLINE, тогда переписывать '\n' на  '\0'
+	// в считанной строке не обязательно
+
+	n_template = strlist_size(template);
+	re_array = (regex_t *) calloc(n_template, sizeof(regex_t));
+	if (re_array) {
+		while ((errcode == 0) && (template != NULL)) {
+			errcode = regcomp(re_array + i, template->content, cflags);
+			template = template->next;
+			++i;
+		}
+		if (errcode) {
+			regerror(errcode, re_array + i, errbuf, MAX_ERR_LENGTH);
+			fprintf(stderr, "s21_grep: %s\n", errbuf);
+			while (i >= 0) {
+				regfree(re_array + i);
+				--i;
+			}
+			free(re_array);
+			re_array = NULL;
+		}
+	}
+
+	*regex_array = re_array;
+
+	return (errcode == 0 ? n_template : -1);
+}
+
+static int
+grep(t_strlist *filename, regex_t *re_array, int nre, int flags)
 {
 	FILE *stream = NULL;
 	char *name = NULL;
@@ -61,8 +110,10 @@ int grep(t_strlist *filename, regex_t *re_array, int nre, int flags)
 			else {
 				name = filename->content;
 			}
-			//status += grep_from_file(stream, name, flags);
-			grep_from_file(stream, name, re_array, nre, flags);
+			status += grep_from_file(stream, name, re_array, nre, flags);
+			if (ferror(stream) && (flags & SFLAG)) {
+				print_error(name);
+			}
 			if (stream == stdin) {
 				clearerr(stdin);
 			}
@@ -70,14 +121,17 @@ int grep(t_strlist *filename, regex_t *re_array, int nre, int flags)
 				fclose(stream);
 			}
 		}
+		else {
+			++status;
+		}
 		filename = filename->next;
 	}
 
-	return status;
+	return (status);
 }
 
-void grep_from_file(FILE *stream, char *filename, regex_t *re_array, int nre,
-                    int flags)
+static int
+grep_from_file(FILE *stream, char *filename, regex_t *re_array, int nre, int flags)
 {
 	char *nlptr = NULL;
 	char *line = NULL;
@@ -87,10 +141,12 @@ void grep_from_file(FILE *stream, char *filename, regex_t *re_array, int nre,
 	size_t match_counter = 0;
 	int file_matched = 0;
 	int matched = REG_NOMATCH;
+	int status = 0;
 
 	while (!file_matched && (nread = getline(&line, &len, stream)) != -1) {
+		errno = 0;
 		matched = REG_NOMATCH;
-		nlptr = index(line, '\n');
+		nlptr = strchr(line, '\n');
 		if (nlptr != NULL) {
 			*nlptr = '\0';
 		}
@@ -105,7 +161,6 @@ void grep_from_file(FILE *stream, char *filename, regex_t *re_array, int nre,
 		}
 		if (matched) {
 			++match_counter;
-			//printf("matched = %zu\n", match_counter);
 			if (flags & LFLAG) {
 				puts(filename);
 				file_matched = 1;
@@ -115,93 +170,61 @@ void grep_from_file(FILE *stream, char *filename, regex_t *re_array, int nre,
 			}
 		}
 	}
-	if (((flags & LFLAG) == 0) && (flags & CFLAG)) {
+
+	if (nread == -1 && errno == ENOMEM) {
+		print_error("memory error");
+		status = 1;
+	}
+	if ((status == 0) && ((flags & LFLAG) == 0) && (flags & CFLAG)) {
 		if (flags & PRINT_FILENAME) {
 			printf("%s:", filename);
 		}
 		printf("%zu\n", match_counter);
 	}
+	free(line);
+
+	return (status);
 }
 
-void print_line(const char *line, size_t n, regex_t *re, int nre,
-                const char *filename, int flags)
-{
-	regmatch_t *pmatch = (regmatch_t *) malloc(sizeof(regmatch_t) * nre);
-	int matched = REG_NOMATCH;
-	int len = 0;
-
-	//if (flags & OFLAG && (flags & VFLAG) == 0) { // MACOS
-	if (flags & OFLAG) { // LINUX
-		while (*line) {
-			int min_so = 1000000;
-			int min_eo = -1;
-			for (int i = 0; i < nre; ++i) {
-				int tmp = regexec(re + i, line, 1, pmatch + i, 0);
-				if (tmp == 0 && (pmatch[i].rm_so < min_so)) {
-					min_so = pmatch[i].rm_so;
-					min_eo = pmatch[i].rm_eo;
-				
-					++matched;
-				}
-			}
-			if (matched && min_so != 1000000) {
-					line += min_so; 
-					len = min_eo - min_so;
-					if (flags & PRINT_FILENAME) {
-						printf("%s:", filename);
-					}
-					if (flags & NFLAG) {
-						printf("%zu:", n);
-					}
-					printf("%.*s\n", len, line);
-					line += len;
-				}
-			else {
-				line = "";
-			}
-		}
-	}
-	else {
-		if (flags & PRINT_FILENAME) {
-			printf("%s:", filename);
-		}
-		if (flags & NFLAG) {
-			printf("%zu:", n);
-		}
-		printf("%s\n", line);
-	}
-}
-
-/*
-void print_line(const char *line, size_t n, regex_t *re, int nre,
-                const char *filename, int flags)
+static void
+print_line(const char *line, size_t n, regex_t *re,
+           int nre, const char *filename, int flags)
 {
 	size_t nmatch = 1;
 	regmatch_t pmatch[nmatch];
-	int matched = REG_NOMATCH;
 	int len = 0;
+	regoff_t so = -1;
+	regoff_t eo = -1;
 
+#ifdef __linux__
 	if (flags & OFLAG) {
+#else /* MACOS */
+	if (flags & OFLAG && (flags & VFLAG) == 0) {
+#endif
 		while (*line) {
-			matched = REG_NOMATCH;
-			for (int i = 0; (matched == REG_NOMATCH) && (i < nre); ++i) {
-				matched = regexec(re + i, line, nmatch, pmatch, 0);
-				//printf("matched = %d\n", matched);
-			}
-			if (matched == 0) {
-				//	printf("so = %d  eo = %d\n", pmatch[0].rm_so, pmatch[0].rm_eo);
-					line += pmatch[0].rm_so; 
-					len = pmatch[0].rm_eo - pmatch[0].rm_so;
-					if (flags & PRINT_FILENAME) {
-						printf("%s:", filename);
+			so = -1;
+			for (int i = 0; i < nre; ++i) {
+				int tmp = regexec(re + i, line, 1, pmatch, 0);
+				if (tmp == 0) {
+					if (pmatch->rm_so != -1 &&
+						((so == -1) || pmatch->rm_so < so)) {
+						so = pmatch->rm_so;
+						eo = pmatch->rm_eo;
 					}
-					if (flags & NFLAG) {
-						printf("%zu:", n);
-					}
-					printf("%.*s\n", len, line);
-					line += len;
-				//	printf("line is _%s_\n", line);
 				}
+			}
+			if (so != -1) {
+				line += so; 
+				len = (int) (eo - so);
+				if (flags & PRINT_FILENAME) {
+					printf("%s:", filename);
+				}
+				if (flags & NFLAG) {
+					printf("%zu:", n);
+				}
+				printf("%.*s\n", len, line);
+				line += len;
+			}
 			else {
 				line = "";
 			}
@@ -217,4 +240,3 @@ void print_line(const char *line, size_t n, regex_t *re, int nre,
 		printf("%s\n", line);
 	}
 }
-*/

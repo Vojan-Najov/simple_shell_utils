@@ -1,7 +1,14 @@
 #include <unistd.h>
+#include <getopt.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include "s21_grep.h"
+
+extern int opterr;
+extern int optopt;
+extern int optind;
+extern char *optarg;
 
 static int
 get_template_from_file(t_strlist **template, const char *filename);
@@ -127,7 +134,7 @@ get_template_from_file(t_strlist **template, const char *filename)
 	else {
 		errno = 0;
 		while ((status == 0) && ((nread = getline(&line, &len, stream)) != -1)) {
-			nlptr = index(line, '\n');
+			nlptr = strchr(line, '\n');
 			if (nlptr) {
 				*nlptr = '\0';
 			}
@@ -139,6 +146,7 @@ get_template_from_file(t_strlist **template, const char *filename)
 			len = 0;
 			errno = 0;
 		}
+		free(line);
 
 		if (ferror(stream)) {
 			print_error(filename);

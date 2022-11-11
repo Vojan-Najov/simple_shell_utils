@@ -1,18 +1,6 @@
 #ifndef S21_GREP_H
 #define S21_GREP_H
 
-//#define _GNU_SOURCE 1
-//#ifdef __linux__
-//	#define _GNU_SOURCE 1
-//#endif
-//#ifndef __STDC_ALLOC_LIB__
-//#define __STDC_WANT_LIB_EXT2__ 1
-//#else
-//#define _POSIX_C_SOURCE 201710L
-//#endif
-#include <stdio.h>
-#include <regex.h>
-
 #define EFLAG 0x01
 #define IFLAG 0x02
 #define VFLAG 0x04

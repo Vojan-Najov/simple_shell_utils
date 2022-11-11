@@ -1,14 +1,10 @@
-#include <unistd.h>
+#define _POSIX_C_SOURCE 200809L
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include "s21_grep.h"
-
-extern int opterr;
-extern int optopt;
-extern int optind;
-extern char *optarg;
 
 static int
 get_template_from_file(t_strlist **template, const char *filename);

@@ -1,8 +1,6 @@
 #ifndef S21_CAT_H
 #define S21_CAT_H
 
-#include <stdio.h>
-
 /*
 -b or --number-nonbank
 Number the non-blank output lines, starting at 1.
@@ -50,14 +48,15 @@ Non- ASCII characters (with the high bit set) are printed as `M-'
 */
 #define VFLAG 0x20
 
+#define ERROR 0x40
+#define HELP 0x80
+
 #define HELP_MESSAGE "Try 's21_cat --help' for more inforation.\n"
 
 int get_options(char **argv);
-int cat(FILE *f, int flags);
-int fastcat(FILE *stream);
 void print_option_error(int c);
 void print_long_option_error(const char *option);
 void print_usage(void);
-void print_file_error(const char *filename);
+int print_error(const char *tag);
 
 #endif

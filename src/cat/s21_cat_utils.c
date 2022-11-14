@@ -142,7 +142,6 @@ void print_usage(void)
       "  -s, --squeeze-blank      suppress repeated empty output lines\n"
       "  -t                       equivalent to -vT\n"
       "  -T, --show-tabs          display TAB characters as ^I\n"
-      "  -u                       (ignored)\n"
       "  -v, --show-nonprinting   use ^ and M- notation, except for LFD and TAB\n"
       "      --help               display this help and exit\n";
 

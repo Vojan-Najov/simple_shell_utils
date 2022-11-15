@@ -79,9 +79,8 @@ regex_compile(t_strlist *template, regex_t **regex_array, int flags)
 		if (errcode) {
 			regerror(errcode, re_array + i, errbuf, MAX_ERR_LENGTH);
 			fprintf(stderr, "s21_grep: %s\n", errbuf);
-			while (i >= 0) {
+			while (--i >= 0) {
 				regfree(re_array + i);
-				--i;
 			}
 			free(re_array);
 			re_array = NULL;
@@ -206,14 +205,15 @@ print_line(const char *line, size_t n, regex_t *re,
 #endif
 		while (*line) {
 			so = -1;
+			eo = -1;
 			for (int i = 0; i < nre; ++i) {
-				int tmp = regexec(re + i, line, 1, pmatch, 0);
-				if (tmp == 0) {
-					if (pmatch->rm_so != -1 &&
-						((so == -1) || pmatch->rm_so < so)) {
+				if (regexec(re + i, line, 1, pmatch, 0) == 0) {
+					if (so == -1 || pmatch->rm_so < so || 
+					(pmatch->rm_so == so && \
+					pmatch->rm_eo - pmatch->rm_so > eo - so)) {
 						so = pmatch->rm_so;
 						eo = pmatch->rm_eo;
-					}
+					}	
 				}
 			}
 			if (so != -1) {

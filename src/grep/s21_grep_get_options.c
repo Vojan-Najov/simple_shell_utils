@@ -23,7 +23,8 @@ get_options(int argc, char **argv, t_strlist **template, t_strlist **filename)
 	char **arg_ptr = NULL;
 
 	opterr = 0;
-	while ((status == 0) && ((c = getopt(argc, argv, optstring)) != -1)) {
+	while ((status == 0) && \
+	((c = getopt_long(argc, argv, optstring, NULL, NULL)) != -1)) {
 		switch (c) {
 			case 'e':
 				flags |= EFLAG;

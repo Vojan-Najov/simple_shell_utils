@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 COUNT=0
 SUCCESS=0
@@ -30,16 +30,16 @@ do
 			;;
 		g)
 			check_gnu=1
-			cat --number <<<123
+			cat --number <<<123 >/dev/null
 			[ $? -eq 0 ] || {
-				echo 'gnu grep not found'
+				echo 'gnu cat not found'
 				exit 1
 			}
 			;;
 		m)
 			if [ ${OPTARG} == "leaks" ]
 			then
-				command -v 'leaks'
+				command -v 'leaks' >/dev/null
 				[ $? -eq 0 ] || {
 					echo 'leaks not found'
 					exit 1
@@ -47,7 +47,7 @@ do
 				check_mem='leaks -quiet -atExit -- '
 			elif [ ${OPTARG} == "valgrind" ]
 			then
-				command -v 'valgrind'
+				command -v 'valgrind' >/dev/null
 				[ $? -eq 0 ] || {
 					echo 'valgrind not found'
 					exit 1
@@ -72,12 +72,11 @@ do
 	esac
 done
 
-make -C .. re
+make -C ../../src/cat/ re
 [ $? -eq 0 ] || {
 	echo 'makefile not found or rule re (fclean all) not exist'
-	exit 1
 }
-cp ../s21_cat .
+cp ../../src/cat/s21_cat .
 [ $? -eq 0 ] || {
 	echo 's21_cat not found'
 	exit 1
@@ -145,8 +144,8 @@ testing()
 
 	(( COUNT++ ))
 	echo "test case: cat $test_case"
-	$s21cat >s21.log
-	$syscat >cat.log
+	$s21cat >s21.log 2>s21err.log
+	$syscat >cat.log 2>caterr.log
 	d="$(diff s21.log cat.log)"
 
 	if [[ -z "$d" ]]
@@ -164,7 +163,7 @@ testing()
 
 	if [ -n "$check_mem" ]
 	then
-		grep -e "$NO_MEM_ERROR" leaks.log
+		grep -e "$NO_MEM_ERROR" 'leaks.log' >/dev/null
 		if [ $? -eq 0 ]
 		then
 			(( LSUCCESS++ ))
@@ -181,7 +180,7 @@ testing()
 
 	if [ $fail -eq 1 ] && [ $check_stop -eq 1 ]
 	then
-		echo -n 'see s21.log, cat.log'
+		echo -n 'see s21.log, cat.log, s21err.log, caterr.log'
 		if [  -n "$check_mem" ]
 		then
 			echo -n ', leaks.log'
@@ -191,7 +190,9 @@ testing()
 	fi
 
 	rm -f s21.log
+	rm -f s21err.log
 	rm -f cat.log
+	rm -f caterr.log
 	rm -f leaks.log
 	
 	echo
@@ -229,15 +230,13 @@ for f1 in "${flags[@]}"
 do
 	for f2 in "${flags[@]}"
 	do
+		if [ "$f1" == "$f2" ]; then continue; fi
 		for f3 in "${flags[@]}"
 		do
+			if [ "$f1" == "$f3" ] || [ "$f2" == "$f3" ]; then continue; fi
 			t="bytes long_string empty nofile new_lines no_new_line text"
-			if [ "$f1" != "$f2" ] &&  [ "$f1" != "$f3" ] &&
-			   [ "$f2" != "$f3" ]
-			then
-				test_case="${f1}${f2}${f3}${t}"
-				testing
-			fi
+			test_case="${f1}${f2}${f3}${t}"
+			testing
 		done
 	done
 done
@@ -246,18 +245,20 @@ for f1 in "${flags[@]}"
 do
 	for f2 in "${flags[@]}"
 	do
+		if [ "$f1" == "$f2" ]; then continue; fi
 		for f3 in "${flags[@]}"
 		do
+			if [ "$f1" == "$f3" ] || [ "$f2" == "$f3" ]; then continue; fi
 			for f4 in "${flags[@]}"
 			do
-				t="bytes long_string empty nofile new_lines no_new_line text"
-				if [ "$f1" != "$f2" ] &&  [ "$f1" != "$f3" ] &&
-				   [ "$f1" != "$f4" ] &&  [ "$f2" != "$f3" ] &&
-				   [ "$f2" != "$f4" ] &&  [ "$f3" != "$f4" ]
+				if [ "$f1" == "$f4" ] || [ "$f2" == "$f4" ] ||
+				   [ "$f3" == "$f4" ]
 				then
-					test_case="${f1}${f2}${f3}${f4}${t}"
-					testing
+					continue
 				fi
+				t="bytes long_string empty nofile new_lines no_new_line text"
+				test_case="${f1}${f2}${f3}${f4}${t}"
+				testing
 			done
 		done
 	done
@@ -270,31 +271,74 @@ testing
 
 if [ $check_gnu -eq 1 ]
 then
+	t="bytes long_string empty nofile new_lines no_new_line text"
+
+	for f1 in "${gnu_flags[@]}"
+	do
+		test_case="${f1}${t}"
+		testing
+	done
+
 	for f1 in "${gnu_flags[@]}"
 	do
 		for f2 in "${gnu_flags[@]}"
 		do
+			if [ "$f1" == "$f2" ]; then continue; fi
+			test_case="${f1}${f2}${t}"
+			testing
+		done
+	done
+
+	for f1 in "${gnu_flags[@]}"
+	do
+		for f2 in "${gnu_flags[@]}"
+		do
+			if [ "$f1" == "$f2" ]; then continue; fi
 			for f3 in "${gnu_flags[@]}"
 			do
+				if [ "$f1" == "$f3" ] ||  [ "$f2" == "$f3" ]
+				then
+					continue
+				fi
+				test_case="${f1}${f2}${f3}${t}"
+				testing
+			done
+		done
+	done
+
+	for f1 in "${gnu_flags[@]}"
+	do
+		for f2 in "${gnu_flags[@]}"
+		do
+			if [ "$f1" == "$f2" ]; then continue; fi
+			for f3 in "${gnu_flags[@]}"
+			do
+				if [ "$f1" == "$f3" ] ||  [ "$f2" == "$f3" ]
+				then
+					continue
+				fi
 				for f4 in "${gnu_flags[@]}"
 				do
-					for f5 in "${gnu_flags[@]}"
-					do
-						t="bytes long_string empty nofile new_lines no_new_line text"
-						if [ "$f1" != "$f2" ] &&  [ "$f1" != "$f3" ] &&
-						   [ "$f1" != "$f4" ] &&  [ "$f1" != "$f5" ] &&
-						   [ "$f2" != "$f3" ] &&  [ "$f2" != "$f4" ] &&
-						   [ "$f2" != "$f5" ] &&  [ "$f3" != "$f4" ] &&
-						   [ "$f3" != "$f5" ] &&  [ "$f4" != "$f5" ]
-						then
-							test_case="${f1}${f2}${f3}${f4}${f5}${t}"
-							testing
-						fi
-					done
+					if [ "$f1" == "$f4" ] ||  [ "$f2" == "$f4" ] || [ "$f3" == "$f4" ]
+					then
+						continue;
+					fi
+					test_case="${f1}${f2}${f3}${f4}${t}"
+					testing
 				done
 			done
 		done
 	done
+		
+	f="--number-nonblank -T -E --number --squeeze-blank "
+	t="bytes long_string empty nofile new_lines no_new_line text"
+	test_case="${f}${t}"
+	testing
+
+	f="--number-nonblank -T -E --number --squeeze-blank -b -e -s -n -t "
+	t="bytes long_string empty nofile new_lines no_new_line text"
+	test_case="${f}${t}"
+	testing
 fi
 
 f="-b -e -j -t -s "
@@ -317,4 +361,26 @@ t="bytes long_string empty nofile new_lines no_new_line text"
 test_case="${f}${t} -e -t"
 testing
 
-rm s21_cat
+f="-best "
+t="bytes long_string empty nofile new_lines no_new_line text"
+test_case="${f}${t}"
+testing
+
+rm -f s21_cat
+rm -f s21.log
+rm -f cat.log
+rm -f s21err.log
+rm -f caterr.log
+rm -f leaks.log
+
+echo -e "\033[31mFAIL: $FAIL\033[0m"
+echo -e "\033[32mSUCCESS: $SUCCESS\033[0m"
+echo -e "ALL: $COUNT"
+if [ -n "$check_mem" ]
+then
+	echo -e "\033[31mMEM FAIL: $LFAIL\033[0m"
+	echo -e "\033[32mMEM SUCCESS: $LSUCCESS\033[0m"
+	echo -e "MEM ALL: $COUNT"
+fi
+
+make -C ../../src/cat/ fclean

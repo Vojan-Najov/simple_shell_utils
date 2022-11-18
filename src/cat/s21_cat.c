@@ -7,7 +7,7 @@
 
 
 static int not_files_in_argv(char **argv);
-static void cat(FILE *stream, int flags);
+static int cat(FILE *stream, const char *filename, int flags);
 static int fastcat(FILE *stream, const char *filename);
 
 int main(int argc, char **argv)
@@ -51,14 +51,10 @@ int main(int argc, char **argv)
 
 			if (stream != NULL) {
 				if (flags) {
-					cat(stream, flags);
+					status += cat(stream, filename, flags);
 				}
 				else {
 					status += fastcat(stream, filename);
-				}
-				if (ferror(stream)) {
-					print_error(filename);
-					++status;
 				}
 				if (stream == stdin) {
 					clearerr(stdin);
@@ -82,7 +78,7 @@ static int not_files_in_argv(char **argv)
 		if (arg[0] != '-') {
 			status = 0;
 		}
-		else if (arg[1] == '\0' || strcmp(arg, "--help") == 0) {
+		else if (arg[1] == '\0') {
 			status = 0;
 		}
 		arg = *++argv;
@@ -91,47 +87,42 @@ static int not_files_in_argv(char **argv)
 	return (status);
 }
 
-static void cat(FILE *stream, int flags)
+static int cat(FILE *stream, const char *filename, int flags)
 {
-#ifdef __linux__
 	static int itline = 0;
 	static int skip_line = 0;
 	static size_t num = 0;
-#else
-	int itline = 0;
-	int skip_line = 0;
-	size_t num = 0;
-#endif
+	int status = 0;
 	int c;
 
-	while ((c = getc(stream)) != EOF) {
+	while ((c = getc(stream)) != EOF && !ferror(stdout)) {
 		if (c != '\n') {
 			if ((flags & NFLAG) && (itline == 0)) {
 				printf("%6zu\t", ++num);
 			}
 			itline = 1;
-			if (flags & VFLAG) {
-				if (!(flags & TFLAG) && (c == '\t')) {
-					putchar('\t');	
+			if (c == '\t') {
+				if (flags & TFLAG) {
+					printf("^I");
 				}
 				else {
-					if (c > 0x7F) {
-						printf("M-");
-						c &= 0x7F;
-					}
-					if (c < ' ') {
-						printf("^%c", '@' + c);
-					}
-					else if ( c == 0x7F) {
-						printf("^?");
-					}
-					else {
-						putchar(c);
-					}
+					putchar('\t');
 				}
 			}
-			else if ((flags & TFLAG) && (c == '\t')) {
-				printf("^I");
+			else if (flags & VFLAG) {
+				if (c & 0x80) {
+					printf("M-");
+					c &= 0x7F;
+				}
+				if (c < 0x20) {
+					printf("^%c", c | 0x40);
+				}
+				else if ( c == 0x7F) {
+					printf("^?");
+				}
+				else {
+					putchar(c);
+				}
 			}
 			else {
 				putchar(c);
@@ -152,31 +143,47 @@ static void cat(FILE *stream, int flags)
 			itline = 0;
 		}
 	}
+
+	if (ferror(stdout)) {
+		print_error("(standart output)");
+		status = 1;
+	}
+	if (ferror(stream)) {
+		print_error(filename);
+		status = 1;
+	}
+
+	return (status);
 }
 
 static int fastcat(FILE *stream, const char *filename)
 {
-	int fd;
-	ssize_t offset;
-	ssize_t nread;
-	ssize_t nwrite;
+	int fd = -1;
+	ssize_t offset = 0;
+	ssize_t nread = 0;
+	ssize_t nwrite = 0;
 	size_t buf_size = 1024;
 	char buf[buf_size];
 
 	fd = fileno(stream);
 	if (fd != -1) {
-		while ((nread = read(fd, buf, buf_size)) > 0) {
+		while ((nread = read(fd, buf, buf_size)) > 0 && nwrite != -1) {
 			offset = 0;
 			do {
 				nwrite = write(STDOUT_FILENO, buf + offset, nread);
-				offset += nwrite;
-				nread -= nwrite;
-			} while (nread > 0);
+				if (nwrite < 0) {
+					print_error("(standart output)");
+				}
+				else {
+					offset += nwrite;
+					nread -= nwrite;
+				}
+			} while (nread > 0 && nwrite != -1);
 		}
 		if (nread == -1) {
 			print_error(filename);
 		}
 	}
 
-	return (nread == 0 ? 0 : 1);
+	return (nread == -1 || nwrite != -1 ? 1 : 0);
 }

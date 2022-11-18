@@ -1,6 +1,8 @@
 #ifndef S21_CAT_H
 #define S21_CAT_H
 
+#define _POSIX_C_SOURCE 200809L
+
 /*
 -b or --number-nonbank
 Number the non-blank output lines, starting at 1.

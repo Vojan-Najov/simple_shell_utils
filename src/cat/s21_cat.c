@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <s21_cat.h>
+#include "s21_cat.h"
 
 
 static int not_files_in_argv(char **argv);

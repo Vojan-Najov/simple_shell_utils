@@ -1,17 +1,19 @@
 NAME = s21_grep
 
+INCLUDES = s21_grep.h
+
 SRC = s21_grep.c s21_grep_get_options.c s21_grep_utils.c
 
 OBJ = $(SRC:.c=.o)
 
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Werror -std=c11 -I ./
+CFLAGS = -Wall -Wextra -Werror -std=c11
 
 $(NAME): $(OBJ)
 	$(CC) $^ -o $@
 
-.c.o:
+%.o: %.c $(INCLUDES)
 	gcc $(CFLAGS) -c $< -o $@
 
 all: $(NAME)

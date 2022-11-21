@@ -28,7 +28,7 @@ get_options(int argc, char **argv, t_strlist **template, t_strlist **filename)
 		switch (c) {
 			case 'e':
 				flags |= EFLAG;
-				status = strlist_insert_sort(template, optarg, 0);
+				status = strlist_insert_sort(template, optarg, NO_NEED_TO_FREE);
 				break;
 			case 'i':
 				flags |= IFLAG;
@@ -89,7 +89,7 @@ static int get_template_from_args(t_strlist **template, char *arg)
 	int status = 0;
 
 	if (arg != NULL) {
-		status = strlist_push_back(template, arg, 0);
+		status = strlist_push_back(template, arg, NO_NEED_TO_FREE);
 	}
 	else {
 		print_usage();
@@ -104,10 +104,10 @@ static int get_filename_from_args(t_strlist **filename, char **arg_ptr)
 	int status = 0;
 
 	if (*arg_ptr == NULL) {
-		status = strlist_push_back(filename, "-", 0);
+		status = strlist_push_back(filename, "-", NO_NEED_TO_FREE);
 	}
 	while ((status == 0) && (*arg_ptr != NULL)) {
-		status = strlist_push_back(filename, *arg_ptr, 0);
+		status = strlist_push_back(filename, *arg_ptr, NO_NEED_TO_FREE);
 		++arg_ptr;
 	}
 
@@ -121,7 +121,6 @@ get_template_from_file(t_strlist **template, const char *filename)
 	ssize_t nread;
 	int status = 0;
 	char *line = NULL;
-	char *nlptr;
 	size_t len = 0;
 
 	stream = open_file(filename, 0);
@@ -131,14 +130,9 @@ get_template_from_file(t_strlist **template, const char *filename)
 	else {
 		errno = 0;
 		while ((status == 0) && ((nread = getline(&line, &len, stream)) != -1)) {
-			nlptr = strchr(line, '\n');
-			if (nlptr) {
-				*nlptr = '\0';
-			}
-			status = strlist_insert_sort(template, line, 1);
-			if (status) {
-				print_error("memory error");
-			}
+			if (line[nread - 1] == '\n')
+				line[nread - 1] = '\0';
+			status = strlist_insert_sort(template, line, NEED_TO_FREE);
 			line = NULL;
 			len = 0;
 			errno = 0;

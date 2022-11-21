@@ -28,15 +28,12 @@ int strlist_push_back(t_strlist **head, char *content, int need_free)
 int strlist_insert_sort(t_strlist **head, char *content, int need_free)
 {
 	int status = 0;
-	t_strlist *tmp = NULL;
+	t_strlist *tmp;
 
 	while ((*head != NULL) && (strcmp((*head)->content, content) < 0)) {
 		head = &(*head)->next;
 	}
-
-	if (*head != NULL) {
-		tmp = *head;
-	}
+	tmp = *head;
 
 	*head = (t_strlist *) malloc(sizeof(t_strlist));
 	if (*head != NULL) {
@@ -84,7 +81,7 @@ int print_error(const char *tag)
 	char *str_error;
 
 	if (tag[0] == '-' && tag[1] == '\0') {
-		tag = "(standart input)";
+		tag = "(standard input)";
 	}
 
 	str_error = strerror(errnum);

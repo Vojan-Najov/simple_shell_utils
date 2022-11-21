@@ -76,7 +76,7 @@ make -C ../../src/cat/ re
 [ $? -eq 0 ] || {
 	echo 'makefile not found or rule re (fclean all) not exist'
 }
-cp ../../src/cat/s21_cat .
+cp -f ../../src/cat/s21_cat .
 [ $? -eq 0 ] || {
 	echo 's21_cat not found'
 	exit 1
@@ -145,7 +145,9 @@ testing()
 	(( COUNT++ ))
 	echo "test case: cat $test_case"
 	$s21cat >s21.log 2>s21err.log
+	s21exitstatus="$?"
 	$syscat >cat.log 2>caterr.log
+	catexitstatus="$?"
 	d="$(diff s21.log cat.log)"
 
 	if [[ -z "$d" ]]
@@ -159,7 +161,12 @@ testing()
 		echo -e "\033[31m$FAIL\033[0m/\033[32m$SUCCESS\033[0m/$COUNT "\
 		"functional test: \033[31mfail\033[0m"
 	fi
-
+	if [ "$s21exitstatus" == "$catexitstatus" ]
+	then
+		echo -e "\033[32mExit status s21_grep and grep are equal\033[0m"
+	else
+		echo -e "\033[31mExit status s21_grep and grep are not equal\033[0m"
+	fi
 
 	if [ -n "$check_mem" ]
 	then

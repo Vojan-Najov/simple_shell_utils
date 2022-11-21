@@ -166,7 +166,9 @@ testing()
 	(( COUNT++ ))
 	echo "test_case: grep ""$test_case"" "
 	$s21grep >'s21.log' 2>'s21err.log'
+	s21exitstatus="$?"
 	$sysgrep >'grep.log' 2>'syserr.log'
+	grepexitstatus="$?"
 	d="$(diff 's21.log' 'grep.log')"
 
 	if [ ${SFLAG} -eq 1 ]
@@ -188,6 +190,12 @@ testing()
 		(( FAIL++ ))
 		echo -e "\033[31m$FAIL\033[m/\033[32m$SUCCESS\033[0m/$COUNT "\
 		"functional test: \033[31mfail\033[0m"
+	fi
+	if [ "$s21exitstatus" == "$grepexitstatus" ]
+	then
+		echo -e "\033[32mExit status s21_grep and grep are equal\033[0m"
+	else
+		echo -e "\033[31mExit status s21_grep and grep are not equal\033[0m"
 	fi
 
 	if [ -n "$check_mem" ]
@@ -383,11 +391,12 @@ then
 			fi
 		done
 	done
+
 	for opt1 in "${flags[@]}"
 	do
-		for opt2 in "${flags[@]}"
+		for opt2 in "${flags[@]:1}"
 		do
-			for opt3 in "${flags[@]}"
+			for opt3 in "${flags[@]:2}"
 			do
 				if [ "$opt1" != "$opt2" ] && [ "$opt1" != "$opt3" ] &&
 				   [ "$opt2" != "$opt3" ]
@@ -405,13 +414,13 @@ then
 
 	for opt1 in "${flags[@]}"
 	do
-		for opt2 in "${flags[@]}"
+		for opt2 in "${flags[@]:1}"
 		do
 			if [ "$opt1" == "$opt2" ]; then continue; fi
-			for opt3 in "${flags[@]}"
+			for opt3 in "${flags[@]:2}"
 			do
 				if [ "$opt1" == "$opt3" ] || [ "$opt2" == "$opt3" ]; then continue; fi
-				for opt4 in "${flags[@]}"
+				for opt4 in "${flags[@]:3}"
 				do
 					if [ "$opt1" == "$opt4" ] || [ "$opt2" == "$opt4" ] || 
 					   [ "$opt3" == "$opt4" ]

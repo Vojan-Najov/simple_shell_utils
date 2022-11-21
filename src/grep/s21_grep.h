@@ -13,7 +13,8 @@
 #define OFLAG 0x200
 #define PRINT_FILENAME 0x400
 #define ERROR 0xffff
-#define NEED_FREE 1
+#define NEED_TO_FREE 1
+#define NO_NEED_TO_FREE 0
 #define MAX_ERR_LENGTH 1024
 
 typedef struct strlist {

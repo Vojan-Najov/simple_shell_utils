@@ -184,5 +184,5 @@ static int fastcat(FILE *stream, const char *filename)
 		}
 	}
 
-	return (nread == -1 || nwrite != -1 ? 1 : 0);
+	return (nread == -1 || nwrite == -1 ? 1 : 0);
 }

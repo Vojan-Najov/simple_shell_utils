@@ -9,7 +9,7 @@ int get_options(char **argv)
 {
 	int flags = 0;
 	char *arg = NULL;
-	char c = '\0';
+	char c;
 
 	while ((arg = *++argv) && !(flags & HELP) && !(flags & ERROR))
 	{

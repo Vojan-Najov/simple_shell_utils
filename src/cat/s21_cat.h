@@ -52,6 +52,7 @@ Non- ASCII characters (with the high bit set) are printed as `M-'
 
 #define ERROR 0x40
 #define HELP 0x80
+#define BUFFER_SIZE 1024
 
 #define HELP_MESSAGE "Try 's21_cat --help' for more inforation.\n"
 

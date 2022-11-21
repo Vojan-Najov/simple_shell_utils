@@ -162,12 +162,11 @@ static int fastcat(FILE *stream, const char *filename)
 	ssize_t offset = 0;
 	ssize_t nread = 0;
 	ssize_t nwrite = 0;
-	size_t buf_size = 1024;
-	char buf[buf_size];
+	char buf[BUFFER_SIZE];
 
 	fd = fileno(stream);
 	if (fd != -1) {
-		while ((nread = read(fd, buf, buf_size)) > 0 && nwrite != -1) {
+		while ((nread = read(fd, buf, BUFFER_SIZE)) > 0 && nwrite != -1) {
 			offset = 0;
 			do {
 				nwrite = write(STDOUT_FILENO, buf + offset, nread);

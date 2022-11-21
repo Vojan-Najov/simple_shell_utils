@@ -227,9 +227,9 @@ testing()
 	fi
 
 	rm -f 's21.log'
-	rm -f 'cat.log'
+	rm -f 'grep.log'
 	rm -f 's21err.log'
-	rm -f 'caterr.log'
+	rm -f 'syserr.log'
 	rm -f 'memerror.log'
 
 	echo

@@ -235,10 +235,10 @@ done
 
 for f1 in "${flags[@]}"
 do
-	for f2 in "${flags[@]}"
+	for f2 in "${flags[@]:1}"
 	do
 		if [ "$f1" == "$f2" ]; then continue; fi
-		for f3 in "${flags[@]}"
+		for f3 in "${flags[@]:2}"
 		do
 			if [ "$f1" == "$f3" ] || [ "$f2" == "$f3" ]; then continue; fi
 			t="bytes long_string empty nofile new_lines no_new_line text"
@@ -250,13 +250,13 @@ done
 
 for f1 in "${flags[@]}"
 do
-	for f2 in "${flags[@]}"
+	for f2 in "${flags[@]:1}"
 	do
 		if [ "$f1" == "$f2" ]; then continue; fi
-		for f3 in "${flags[@]}"
+		for f3 in "${flags[@]:2}"
 		do
 			if [ "$f1" == "$f3" ] || [ "$f2" == "$f3" ]; then continue; fi
-			for f4 in "${flags[@]}"
+			for f4 in "${flags[@]:3}"
 			do
 				if [ "$f1" == "$f4" ] || [ "$f2" == "$f4" ] ||
 				   [ "$f3" == "$f4" ]
@@ -298,10 +298,10 @@ then
 
 	for f1 in "${gnu_flags[@]}"
 	do
-		for f2 in "${gnu_flags[@]}"
+		for f2 in "${gnu_flags[@]:1}"
 		do
 			if [ "$f1" == "$f2" ]; then continue; fi
-			for f3 in "${gnu_flags[@]}"
+			for f3 in "${gnu_flags[@]:2}"
 			do
 				if [ "$f1" == "$f3" ] ||  [ "$f2" == "$f3" ]
 				then
@@ -315,16 +315,16 @@ then
 
 	for f1 in "${gnu_flags[@]}"
 	do
-		for f2 in "${gnu_flags[@]}"
+		for f2 in "${gnu_flags[@]:1}"
 		do
 			if [ "$f1" == "$f2" ]; then continue; fi
-			for f3 in "${gnu_flags[@]}"
+			for f3 in "${gnu_flags[@]:2}"
 			do
 				if [ "$f1" == "$f3" ] ||  [ "$f2" == "$f3" ]
 				then
 					continue
 				fi
-				for f4 in "${gnu_flags[@]}"
+				for f4 in "${gnu_flags[@]:3}"
 				do
 					if [ "$f1" == "$f4" ] ||  [ "$f2" == "$f4" ] || [ "$f3" == "$f4" ]
 					then

@@ -14,7 +14,7 @@ $(NAME): $(OBJ)
 	$(CC) $^ -o $@
 
 %.o: %.c $(INCLUDES)
-	gcc $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 all: $(NAME)
 
